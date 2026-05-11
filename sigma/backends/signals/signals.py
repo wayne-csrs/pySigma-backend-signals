@@ -196,6 +196,21 @@ class SignalsBackend(TextQueryBackend):
             technique_ids.append(technique_id)
         return technique_ids
 
+    @staticmethod
+    def _extract_mitre_tactics(rule: SigmaRule) -> List[str]:
+        tactics: List[str] = []
+        for tag in rule.tags or []:
+            tag_value = str(tag).lower()
+            if not tag_value.startswith("attack."):
+                continue
+            attack_tag = tag_value.split(".", 1)[1]
+            # Tactics are ATT&CK tags like "attack.execution", not technique IDs.
+            if attack_tag.startswith("t"):
+                continue
+            if attack_tag not in tactics:
+                tactics.append(attack_tag)
+        return tactics
+
     def finalize_query_json(
         self,
         rule: Union[SigmaRule, SigmaCorrelationRule],
@@ -206,10 +221,20 @@ class SignalsBackend(TextQueryBackend):
         if isinstance(rule, SigmaCorrelationRule):
             return {
                 "name": rule.name or "",
+                "description": "",
+                "status": "",
+                "level": "",
                 "text": query,
                 "platforms": [],
-                "syntax_version": "",
-                "mitreAttack": {"technique_ids": []},
+                "date": "",
+                "modified": "",
+                "author": "",
+                "reference": [],
+                "falsepositives": [],
+                "mitreAttack": {
+                    "technique_ids": [],
+                    "tactics": [],
+                },
             }
 
         platforms: List[str] = []
@@ -220,11 +245,21 @@ class SignalsBackend(TextQueryBackend):
 
         return {
             "name": rule.title or "",
+            "description": str(getattr(rule, "description", "") or ""),
+            "status": str(getattr(rule, "status", "") or ""),
+            "level": str(getattr(rule, "level", "") or ""),
             "text": query,
             "platforms": platforms,
-            "syntax_version": str(getattr(rule, "sigma_version", "") or ""),
+            "date": str(getattr(rule, "date", "") or ""),
+            "modified": str(getattr(rule, "modified", "") or ""),
+            "author": str(getattr(rule, "author", "") or ""),
+            "reference": [str(reference) for reference in (rule.references or [])],
+            "falsepositives": [
+                str(falsepositive) for falsepositive in (rule.falsepositives or [])
+            ],
             "mitreAttack": {
                 "technique_ids": self._extract_mitre_technique_ids(rule),
+                "tactics": self._extract_mitre_tactics(rule),
             },
         }
 
