@@ -1,9 +1,13 @@
+import json
 from sigma.conversion.base import TextQueryBackend
+from sigma.conversion.state import ConversionState
 from sigma.conditions import ConditionItem, ConditionAND, ConditionOR, ConditionNOT
+from sigma.correlations import SigmaCorrelationRule
 from sigma.pipelines.signals import signals_pipeline
+from sigma.rule import SigmaRule
 from sigma.types import SigmaCompareExpression, SigmaRegularExpressionFlag
 import re
-from typing import ClassVar, Dict, Optional, Pattern, Tuple
+from typing import Any, ClassVar, Dict, List, Optional, Pattern, Tuple, Union
 
 # Future backend imports you may enable later:
 # from sigma.conversion.state import ConversionState
@@ -16,6 +20,7 @@ class SignalsBackend(TextQueryBackend):
     name: ClassVar[str] = "signals backend"
     formats: Dict[str, str] = {
         "default": "Plain signals queries",
+        "json": "JSON output with query and Sigma metadata",
     }
     requires_pipeline: ClassVar[bool] = True
     backend_processing_pipeline = signals_pipeline()
@@ -179,6 +184,52 @@ class SignalsBackend(TextQueryBackend):
         "default": "| where eventtype_count {op} {count} and eventtype_order={referenced_rules}"
     }
     ### Correlation end ###
+
+    @staticmethod
+    def _extract_mitre_technique_ids(rule: SigmaRule) -> List[str]:
+        technique_ids: List[str] = []
+        for tag in rule.tags or []:
+            tag_value = str(tag).lower()
+            if not tag_value.startswith("attack.t"):
+                continue
+            technique_id = tag_value.split(".", 1)[1].upper()
+            technique_ids.append(technique_id)
+        return technique_ids
+
+    def finalize_query_json(
+        self,
+        rule: Union[SigmaRule, SigmaCorrelationRule],
+        query: str,
+        index: int,
+        state: ConversionState,
+    ) -> Dict[str, Any]:
+        if isinstance(rule, SigmaCorrelationRule):
+            return {
+                "name": rule.name or "",
+                "text": query,
+                "platforms": [],
+                "syntax_version": "",
+                "mitreAttack": {"technique_ids": []},
+            }
+
+        platforms: List[str] = []
+        if rule.logsource is not None:
+            for value in (rule.logsource.product, rule.logsource.service):
+                if value:
+                    platforms.append(value)
+
+        return {
+            "name": rule.title or "",
+            "text": query,
+            "platforms": platforms,
+            "syntax_version": str(getattr(rule, "sigma_version", "") or ""),
+            "mitreAttack": {
+                "technique_ids": self._extract_mitre_technique_ids(rule),
+            },
+        }
+
+    def finalize_output_json(self, queries: List[Dict[str, Any]]) -> str:
+        return json.dumps(queries, indent=2)
 
 
 # Backward-compatible alias for existing imports.

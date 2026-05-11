@@ -23,7 +23,9 @@ This package provides:
 
 - **Backend**: `sigma.backends.signals` with `SignalsBackend`
 - **Pipeline**: `sigma.pipelines.signals` with `signals_pipeline`
-- **Output format**: `default` (plain Signals query output)
+- **Output formats**:
+  - `default` (plain Signals query output)
+  - `json` (query plus Sigma metadata in JSON, including `mitreAttack.technique_ids`)
 
 The backend is designed for Sigma rule conversion with field normalisation that maps common Windows/Sysmon-style fields to Signals fields.
 
@@ -83,6 +85,12 @@ If your `sigma-cli` environment is set up to discover installed backends, you ca
 
 ```bash
 sigma convert -t signals -p signals path/to/rule.yml
+```
+
+For JSON output:
+
+```bash
+sigma convert -t signals -p signals -f json path/to/rule.yml
 ```
 
 ## Processing Pipeline
