@@ -10,10 +10,12 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = ">=3.10,<4.0"
+pysigma = ">=1.0.0"
 
 [tool.poetry.group.dev.dependencies]
 defusedxml = "^0.7"
+pytest = "^8.0.0"
 pytest-cov = "^7.1.0"
 
 [build-system]
