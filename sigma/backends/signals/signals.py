@@ -37,6 +37,7 @@ class SignalsBackend(TextQueryBackend):
     and_token: ClassVar[str] = "AND"
     not_token: ClassVar[str] = "NOT"
     eq_token: ClassVar[str] = "="
+    convert_not_as_not_eq: ClassVar[bool] = True
 
     field_quote: ClassVar[str] = '"'
     field_quote_pattern: ClassVar[Pattern] = re.compile(r"^[A-Za-z0-9_.]+$")
@@ -58,8 +59,11 @@ class SignalsBackend(TextQueryBackend):
     }
 
     startswith_expression: ClassVar[str] = "{field} starts with {value}"
+    not_startswith_expression: ClassVar[str] = "{field} starts with not {value}"
     endswith_expression: ClassVar[str] = "{field} ends with {value}"
+    not_endswith_expression: ClassVar[str] = "{field} ends with not {value}"
     contains_expression: ClassVar[str] = "{field} contains {value}"
+    not_contains_expression: ClassVar[str] = "{field} contains not {value}"
     wildcard_match_expression: ClassVar[str] = "{field} matches {value}"
 
     # Regular expressions
@@ -67,6 +71,7 @@ class SignalsBackend(TextQueryBackend):
     # is one of the flags shortcuts supported by Sigma (currently i, m and s) and refers to the
     # token stored in the class variable re_flags.
     re_expression: ClassVar[str] = "{field} matches regex {regex}"
+    not_re_expression: ClassVar[str] = "{field} matches not regex {regex}"
     re_escape_char: ClassVar[str] = "\\"
     re_escape: ClassVar[Tuple[str, ...]] = ()
     re_escape_escape_char: bool = True
@@ -84,9 +89,13 @@ class SignalsBackend(TextQueryBackend):
     # Case sensitive string matching expression. String is quoted/escaped like a normal string.
     # Placeholders {field} and {value} are replaced with field name and quoted/escaped string.
     case_sensitive_match_expression: ClassVar[str] = "{field} = {value}"
+    not_eq_expression: ClassVar[str] = "{field} is not {value}"
     case_sensitive_startswith_expression: ClassVar[str] = "{field} starts with {value}"
+    case_sensitive_not_startswith_expression: ClassVar[str] = "{field} starts with not {value}"
     case_sensitive_endswith_expression: ClassVar[str] = "{field} ends with {value}"
+    case_sensitive_not_endswith_expression: ClassVar[str] = "{field} ends with not {value}"
     case_sensitive_contains_expression: ClassVar[str] = "{field} contains {value}"
+    case_sensitive_not_contains_expression: ClassVar[str] = "{field} contains not {value}"
 
     # CIDR expressions: define CIDR matching if backend has native support. Else pySigma expands
     # CIDR values into string wildcard matches.

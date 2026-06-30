@@ -142,6 +142,55 @@ def test_signals_field_name_with_whitespace(signals_backend: SignalsBackend):
         """)
     ) == ['"field\\ name"=\'value\'']
 
+def test_signals_not_contains_expression(signals_backend: SignalsBackend):
+    assert signals_backend.convert(
+        SigmaCollection.from_yaml("""
+            title: Test
+            status: test
+            logsource:
+                category: process_creation
+                product: windows
+            detection:
+                sel:
+                    CommandLine|contains: evil
+                filter:
+                    CommandLine|contains: good
+                condition: sel and not filter
+        """)
+    ) == [
+        "process.command_line contains 'evil' AND process.command_line contains not 'good'"
+    ]
+
+def test_signals_not_startswith_expression(signals_backend: SignalsBackend):
+    assert signals_backend.convert(
+        SigmaCollection.from_yaml("""
+            title: Test
+            status: test
+            logsource:
+                category: test_category
+                product: test_product
+            detection:
+                sel:
+                    field|startswith: foo
+                condition: not sel
+        """)
+    ) == ["field starts with not 'foo'"]
+
+def test_signals_not_endswith_expression(signals_backend: SignalsBackend):
+    assert signals_backend.convert(
+        SigmaCollection.from_yaml("""
+            title: Test
+            status: test
+            logsource:
+                category: test_category
+                product: test_product
+            detection:
+                sel:
+                    field|endswith: foo
+                condition: not sel
+        """)
+    ) == ["field ends with not 'foo'"]
+
 # NOTE: Expand coverage for custom backend behavior (e.g., deferred expressions) as features are finalized.
 
 
