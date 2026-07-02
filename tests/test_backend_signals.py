@@ -96,21 +96,25 @@ def test_signals_in_expression(signals_backend: SignalsBackend):
         """)
     ) == ["fieldA='valueA' OR fieldA='valueB' OR fieldA starts with 'valueC'"]
 
-def test_signals_regex_query(signals_backend: SignalsBackend):
-    assert signals_backend.convert(
-        SigmaCollection.from_yaml("""
-            title: Test
-            status: test
-            logsource:
-                category: test_category
-                product: test_product
-            detection:
-                sel:
-                    fieldA|re: foo.*bar
-                    fieldB: foo
-                condition: sel
-        """)
-    ) == ["fieldA matches regex foo.*bar AND fieldB='foo'"]
+def test_signals_regex_query_not_supported(signals_backend: SignalsBackend):
+    with pytest.raises(
+        NotImplementedError,
+        match="Regular expression template is not supported by the backend",
+    ):
+        signals_backend.convert(
+            SigmaCollection.from_yaml("""
+                title: Test
+                status: test
+                logsource:
+                    category: test_category
+                    product: test_product
+                detection:
+                    sel:
+                        fieldA|re: foo.*bar
+                        fieldB: foo
+                    condition: sel
+            """)
+        )
 
 def test_signals_cidr_query(signals_backend: SignalsBackend):
     assert signals_backend.convert(
