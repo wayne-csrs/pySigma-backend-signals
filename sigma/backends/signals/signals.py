@@ -5,7 +5,7 @@ from sigma.conditions import ConditionItem, ConditionAND, ConditionOR, Condition
 from sigma.correlations import SigmaCorrelationRule
 from sigma.pipelines.signals import signals_pipeline
 from sigma.rule import SigmaRule
-from sigma.types import SigmaCompareExpression, SigmaRegularExpressionFlag
+from sigma.types import SigmaCompareExpression
 import re
 from typing import Any, ClassVar, Dict, List, Optional, Pattern, Tuple, Union
 
@@ -66,25 +66,11 @@ class SignalsBackend(TextQueryBackend):
     not_contains_expression: ClassVar[str] = "{field} contains not {value}"
     wildcard_match_expression: ClassVar[str] = "{field} matches {value}"
 
-    # Regular expressions
-    # Regular expression query as format string with placeholders {field}, {regex}, {flag_x} where x
-    # is one of the flags shortcuts supported by Sigma (currently i, m and s) and refers to the
-    # token stored in the class variable re_flags.
-    re_expression: ClassVar[str] = "{field} matches regex {regex}"
-    not_re_expression: ClassVar[str] = "{field} matches not regex {regex}"
-    re_escape_char: ClassVar[str] = "\\"
-    re_escape: ClassVar[Tuple[str, ...]] = ()
-    re_escape_escape_char: bool = True
-    re_flag_prefix: bool = True
-    # Mapping from SigmaRegularExpressionFlag values to static string templates that are used in
-    # flag_x placeholders in re_expression template.
-    # By default, i, m and s are defined. If a flag is not supported by the target query language,
-    # remove it from re_flags or don't define it to ensure proper error handling in case of appearance.
-    re_flags: Dict[SigmaRegularExpressionFlag, str] = {
-        SigmaRegularExpressionFlag.IGNORECASE: "i",
-        SigmaRegularExpressionFlag.MULTILINE: "m",
-        SigmaRegularExpressionFlag.DOTALL: "s",
-    }
+    # Tanium Signals does not support regex; leave templates unset so pySigma raises
+    # NotImplementedError when a rule uses field|re.
+    re_expression: ClassVar[Optional[str]] = None
+    not_re_expression: ClassVar[Optional[str]] = None
+    unbound_value_re_expression: ClassVar[Optional[str]] = None
 
     # Case sensitive string matching expression. String is quoted/escaped like a normal string.
     # Placeholders {field} and {value} are replaced with field name and quoted/escaped string.
@@ -133,7 +119,6 @@ class SignalsBackend(TextQueryBackend):
     # Value not bound to a field
     unbound_value_str_expression: ClassVar[str] = "{value}"
     unbound_value_num_expression: ClassVar[str] = "{value}"
-    unbound_value_re_expression: ClassVar[str] = "{value}"
 
     # Query finalization: appending and concatenating deferred query part
     deferred_start: ClassVar[str] = "\n| "
