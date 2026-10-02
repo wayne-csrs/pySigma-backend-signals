@@ -195,6 +195,44 @@ def test_signals_not_endswith_expression(signals_backend: SignalsBackend):
         """)
     ) == ["field ends with not 'foo'"]
 
+def test_signals_not_or_expression(signals_backend: SignalsBackend):
+    assert signals_backend.convert(
+        SigmaCollection.from_yaml("""
+            title: Test
+            status: test
+            logsource:
+                category: test_category
+                product: test_product
+            detection:
+                filter_a:
+                    fieldA: valueA
+                filter_b:
+                    fieldB: valueB
+                condition: not (filter_a or filter_b)
+        """)
+    ) == ["NOT (fieldA='valueA' OR fieldB='valueB')"]
+
+def test_signals_not_or_contains_all_expression(signals_backend: SignalsBackend):
+    assert signals_backend.convert(
+        SigmaCollection.from_yaml("""
+            title: Test
+            status: test
+            logsource:
+                category: test_category
+                product: test_product
+            detection:
+                filter_a:
+                    fieldA|contains|all:
+                        - valueA
+                        - valueB
+                filter_b:
+                    fieldB: valueB
+                condition: not (filter_a or filter_b)
+        """)
+    ) == [
+        "NOT (fieldA contains 'valueA' AND fieldA contains 'valueB' OR fieldB='valueB')"
+    ]
+
 # NOTE: Expand coverage for custom backend behavior (e.g., deferred expressions) as features are finalized.
 
 

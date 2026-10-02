@@ -179,6 +179,17 @@ class SignalsBackend(TextQueryBackend):
     }
     ### Correlation end ###
 
+    def convert_condition_not(self, cond: ConditionNOT, state: ConversionState):
+        arg = cond.args[0]
+        if arg is not None and arg.__class__ in (ConditionAND, ConditionOR):
+            convert_not_as_not_eq = self.convert_not_as_not_eq
+            self.convert_not_as_not_eq = False
+            try:
+                return super().convert_condition_not(cond, state)
+            finally:
+                self.convert_not_as_not_eq = convert_not_as_not_eq
+        return super().convert_condition_not(cond, state)
+
     @staticmethod
     def _extract_mitre_technique_ids(rule: SigmaRule) -> List[str]:
         technique_ids: List[str] = []
