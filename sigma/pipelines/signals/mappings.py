@@ -5,6 +5,7 @@ from sigma.pipelines.common import (
     logsource_macos_file_create,
     logsource_macos_process_creation,
     logsource_windows_file_event,
+    logsource_windows_create_remote_thread,
     logsource_windows_image_load,
     logsource_windows_network_connection,
     logsource_windows_process_creation,
@@ -36,6 +37,14 @@ CATEGORY_TO_CONDITIONS_MAPPINGS = {
     "macos_process_creation": logsource_macos_process_creation(),
     "macos_file_create": logsource_macos_file_create(),
 }
+
+UNSUPPORTED_LOGSOURCES = [
+    (
+        "create_remote_thread",
+        logsource_windows_create_remote_thread(),
+        "because SourceImage and TargetImage have no field mappings.",
+    ),
+]
 
 # Generic mappings that apply to all rule categories.
 GENERIC_FIELD_MAPPINGS = {

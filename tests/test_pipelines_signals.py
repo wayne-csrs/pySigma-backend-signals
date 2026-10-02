@@ -1,5 +1,8 @@
+import pytest
+
 from sigma.backends.signals import SignalsBackend
 from sigma.collection import SigmaCollection
+from sigma.exceptions import SigmaTransformationError
 
 
 def test_signals_pipeline_field_mapping_applied() -> None:
@@ -67,3 +70,29 @@ def test_signals_pipeline_macos_file_create_field_mapping_applied() -> None:
     )[0]
 
     assert "file.path" in query
+
+
+def test_signals_pipeline_rejects_create_remote_thread() -> None:
+    backend = SignalsBackend()
+    rules = SigmaCollection.from_yaml(
+        """
+        title: Unsupported Remote Thread Test
+        logsource:
+            category: create_remote_thread
+            product: windows
+        detection:
+            sel:
+                SourceImage: source.exe
+                TargetImage: target.exe
+            condition: sel
+        """
+    )
+
+    with pytest.raises(
+        SigmaTransformationError,
+        match=(
+            "The 'create_remote_thread' category is not supported by the Tanium "
+            "Signals backend because SourceImage and TargetImage have no field mappings."
+        ),
+    ):
+        backend.convert(rules)
