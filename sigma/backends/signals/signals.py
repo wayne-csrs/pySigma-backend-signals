@@ -39,6 +39,11 @@ class SignalsBackend(TextQueryBackend):
     eq_token: ClassVar[str] = "="
     convert_not_as_not_eq: ClassVar[bool] = True
 
+    def compare_precedence(self, outer: Any, inner: Any) -> bool:
+        if outer.__class__ is ConditionOR and inner.__class__ is ConditionAND:
+            return False
+        return super().compare_precedence(outer, inner)
+
     field_quote: ClassVar[str] = '"'
     field_quote_pattern: ClassVar[Pattern] = re.compile(r"^[A-Za-z0-9_.]+$")
     field_quote_pattern_negation: ClassVar[bool] = True
@@ -178,6 +183,17 @@ class SignalsBackend(TextQueryBackend):
         "default": "| where eventtype_count {op} {count} and eventtype_order={referenced_rules}"
     }
     ### Correlation end ###
+
+    def convert_condition_not(self, cond: ConditionNOT, state: ConversionState):
+        arg = cond.args[0]
+        if arg is not None and arg.__class__ in (ConditionAND, ConditionOR):
+            convert_not_as_not_eq = self.convert_not_as_not_eq
+            self.convert_not_as_not_eq = False
+            try:
+                return super().convert_condition_not(cond, state)
+            finally:
+                self.convert_not_as_not_eq = convert_not_as_not_eq
+        return super().convert_condition_not(cond, state)
 
     @staticmethod
     def _extract_mitre_technique_ids(rule: SigmaRule) -> List[str]:

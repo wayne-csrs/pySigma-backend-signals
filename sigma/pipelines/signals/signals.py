@@ -1,9 +1,10 @@
 from sigma.pipelines.base import Pipeline
 from sigma.processing.pipeline import ProcessingItem, ProcessingPipeline
+from sigma.processing.transformations import RuleFailureTransformation
 from sigma.processing.transformations import FieldMappingTransformation
 from sigma.pipelines.signals.mappings import (
     CATEGORY_FIELD_MAPPINGS,
-    CATEGORY_TO_CONDITIONS_MAPPINGS,
+    CATEGORY_TO_CONDITIONS_FACTORIES,
     GENERIC_FIELD_MAPPINGS,
 )
 
@@ -27,6 +28,21 @@ from sigma.pipelines.signals.mappings import (
 def signals_pipeline() -> ProcessingPipeline:
     items = [
         ProcessingItem(
+            identifier="signals_unsupported_logsource",
+            transformation=RuleFailureTransformation(
+                message=(
+                    "Unsupported Signals logsource. Supported product/category "
+                    f"combinations: {', '.join(sorted(CATEGORY_FIELD_MAPPINGS))}"
+                )
+            ),
+            rule_conditions=[
+                condition_factory()
+                for condition_factory in CATEGORY_TO_CONDITIONS_FACTORIES.values()
+            ],
+            rule_condition_linking=any,
+            rule_condition_negation=True,
+        ),
+        ProcessingItem(
             identifier="signals_base_field_mapping",
             transformation=FieldMappingTransformation(GENERIC_FIELD_MAPPINGS),
         )
@@ -37,7 +53,7 @@ def signals_pipeline() -> ProcessingPipeline:
             ProcessingItem(
                 identifier=f"signals_field_mapping_{category}",
                 transformation=FieldMappingTransformation(field_mappings),
-                rule_conditions=[CATEGORY_TO_CONDITIONS_MAPPINGS[category]],
+                rule_conditions=[CATEGORY_TO_CONDITIONS_FACTORIES[category]()],
             )
         )
 
