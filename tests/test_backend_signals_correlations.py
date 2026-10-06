@@ -15,7 +15,8 @@ title: Base rule
 name: base_rule
 status: test
 logsource:
-    category: test
+    product: windows
+    category: process_creation
 detection:
     selection:
         fieldA: value1
@@ -49,7 +50,8 @@ title: Base rule
 name: base_rule
 status: test
 logsource:
-    category: test
+    product: windows
+    category: process_creation
 detection:
     selection:
         fieldA: value1
@@ -83,7 +85,8 @@ title: Base rule 1
 name: base_rule_1
 status: test
 logsource:
-    category: test
+    product: windows
+    category: process_creation
 detection:
     selection:
         fieldA: value1
@@ -94,7 +97,8 @@ title: Base rule 2
 name: base_rule_2
 status: test
 logsource:
-    category: test
+    product: windows
+    category: process_creation
 detection:
     selection:
         fieldA: value3
@@ -133,7 +137,8 @@ title: Base rule 1
 name: base_rule_1
 status: test
 logsource:
-    category: test
+    product: windows
+    category: process_creation
 detection:
     selection:
         fieldA: value1
@@ -144,7 +149,8 @@ title: Base rule 2
 name: base_rule_2
 status: test
 logsource:
-    category: test
+    product: windows
+    category: process_creation
 detection:
     selection:
         fieldA: value3

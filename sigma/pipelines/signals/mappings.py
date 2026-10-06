@@ -23,18 +23,18 @@ from sigma.pipelines.common import (
 # )
 
 # Rule categories -> rule conditions
-CATEGORY_TO_CONDITIONS_MAPPINGS = {
-    "windows_process_creation": logsource_windows_process_creation(),
-    "windows_image_load": logsource_windows_image_load(),
-    "windows_file_event": logsource_windows_file_event(),
-    "windows_network_connection": logsource_windows_network_connection(),
-    "windows_registry_event": logsource_windows_registry_event(),
-    "windows_registry_set": logsource_windows_registry_set(),
-    "linux_process_creation": logsource_linux_process_creation(),
-    "linux_network_connection": logsource_linux_network_connection(),
-    "linux_file_create": logsource_linux_file_create(),
-    "macos_process_creation": logsource_macos_process_creation(),
-    "macos_file_create": logsource_macos_file_create(),
+CATEGORY_TO_CONDITIONS_FACTORIES = {
+    "windows_process_creation": logsource_windows_process_creation,
+    "windows_image_load": logsource_windows_image_load,
+    "windows_file_event": logsource_windows_file_event,
+    "windows_network_connection": logsource_windows_network_connection,
+    "windows_registry_event": logsource_windows_registry_event,
+    "windows_registry_set": logsource_windows_registry_set,
+    "linux_process_creation": logsource_linux_process_creation,
+    "linux_network_connection": logsource_linux_network_connection,
+    "linux_file_create": logsource_linux_file_create,
+    "macos_process_creation": logsource_macos_process_creation,
+    "macos_file_create": logsource_macos_file_create,
 }
 
 # Generic mappings that apply to all rule categories.

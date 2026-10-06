@@ -12,8 +12,8 @@ def test_signals_and_expression(signals_backend: SignalsBackend):
             title: Test
             status: test
             logsource:
-                category: test_category
-                product: test_product
+                category: process_creation
+                product: windows
             detection:
                 sel:
                     fieldA: valueA
@@ -28,8 +28,8 @@ def test_signals_or_expression(signals_backend: SignalsBackend):
             title: Test
             status: test
             logsource:
-                category: test_category
-                product: test_product
+                category: process_creation
+                product: windows
             detection:
                 sel1:
                     fieldA: valueA
@@ -45,8 +45,8 @@ def test_signals_and_or_expression(signals_backend: SignalsBackend):
             title: Test
             status: test
             logsource:
-                category: test_category
-                product: test_product
+                category: process_creation
+                product: windows
             detection:
                 sel:
                     fieldA:
@@ -65,8 +65,8 @@ def test_signals_or_and_expression(signals_backend: SignalsBackend):
             title: Test
             status: test
             logsource:
-                category: test_category
-                product: test_product
+                category: process_creation
+                product: windows
             detection:
                 sel1:
                     fieldA: valueA1
@@ -76,7 +76,9 @@ def test_signals_or_and_expression(signals_backend: SignalsBackend):
                     fieldB: valueB2
                 condition: 1 of sel*
         """)
-    ) == ["fieldA='valueA1' AND fieldB='valueB1' OR fieldA='valueA2' AND fieldB='valueB2'"]
+    ) == [
+        "(fieldA='valueA1' AND fieldB='valueB1') OR (fieldA='valueA2' AND fieldB='valueB2')"
+    ]
 
 def test_signals_in_expression(signals_backend: SignalsBackend):
     assert signals_backend.convert(
@@ -84,8 +86,8 @@ def test_signals_in_expression(signals_backend: SignalsBackend):
             title: Test
             status: test
             logsource:
-                category: test_category
-                product: test_product
+                category: process_creation
+                product: windows
             detection:
                 sel:
                     fieldA:
@@ -106,8 +108,8 @@ def test_signals_regex_query_not_supported(signals_backend: SignalsBackend):
                 title: Test
                 status: test
                 logsource:
-                    category: test_category
-                    product: test_product
+                    category: process_creation
+                    product: windows
                 detection:
                     sel:
                         fieldA|re: foo.*bar
@@ -122,8 +124,8 @@ def test_signals_cidr_query(signals_backend: SignalsBackend):
             title: Test
             status: test
             logsource:
-                category: test_category
-                product: test_product
+                category: process_creation
+                product: windows
             detection:
                 sel:
                     field|cidr: 192.168.0.0/16
@@ -137,8 +139,8 @@ def test_signals_field_name_with_whitespace(signals_backend: SignalsBackend):
             title: Test
             status: test
             logsource:
-                category: test_category
-                product: test_product
+                category: process_creation
+                product: windows
             detection:
                 sel:
                     field name: value
@@ -171,8 +173,8 @@ def test_signals_not_startswith_expression(signals_backend: SignalsBackend):
             title: Test
             status: test
             logsource:
-                category: test_category
-                product: test_product
+                category: process_creation
+                product: windows
             detection:
                 sel:
                     field|startswith: foo
@@ -186,8 +188,8 @@ def test_signals_not_endswith_expression(signals_backend: SignalsBackend):
             title: Test
             status: test
             logsource:
-                category: test_category
-                product: test_product
+                category: process_creation
+                product: windows
             detection:
                 sel:
                     field|endswith: foo
@@ -201,8 +203,8 @@ def test_signals_not_or_expression(signals_backend: SignalsBackend):
             title: Test
             status: test
             logsource:
-                category: test_category
-                product: test_product
+                category: process_creation
+                product: windows
             detection:
                 filter_a:
                     fieldA: valueA
@@ -218,8 +220,8 @@ def test_signals_not_or_contains_all_expression(signals_backend: SignalsBackend)
             title: Test
             status: test
             logsource:
-                category: test_category
-                product: test_product
+                category: process_creation
+                product: windows
             detection:
                 filter_a:
                     fieldA|contains|all:
@@ -230,7 +232,7 @@ def test_signals_not_or_contains_all_expression(signals_backend: SignalsBackend)
                 condition: not (filter_a or filter_b)
         """)
     ) == [
-        "NOT (fieldA contains 'valueA' AND fieldA contains 'valueB' OR fieldB='valueB')"
+            "NOT ((fieldA contains 'valueA' AND fieldA contains 'valueB') OR fieldB='valueB')"
     ]
 
 # NOTE: Expand coverage for custom backend behavior (e.g., deferred expressions) as features are finalized.
