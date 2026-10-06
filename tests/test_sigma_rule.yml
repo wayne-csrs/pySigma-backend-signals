@@ -7,7 +7,7 @@ references:
 author: kelnage
 date: 2025-09-03
 logsource:
-  category: testing
+  category: process_creation
 detection:
   test:
     file_name: field_value
