@@ -182,6 +182,19 @@ class SignalsBackend(TextQueryBackend):
     temporal_ordered_condition_expression: ClassVar[Dict[str, str]] = {
         "default": "| where eventtype_count {op} {count} and eventtype_order={referenced_rules}"
     }
+
+    def convert_correlation_ruleid(self, ruleid: Any, template: str) -> str:
+        # pySigma >= 1.5.1 converts rule ids like string values, which wraps them in
+        # str_quote ('). The subsearch template already puts {ruleid} in double quotes,
+        # so drop the single quotes to keep event_type equal to the eventtypes names.
+        converted_ruleid = super().convert_correlation_ruleid(ruleid, template)
+        if (
+            len(converted_ruleid) >= 2 * len(self.str_quote)
+            and converted_ruleid.startswith(self.str_quote)
+            and converted_ruleid.endswith(self.str_quote)
+        ):
+            return converted_ruleid[len(self.str_quote) : -len(self.str_quote)]
+        return converted_ruleid
     ### Correlation end ###
 
     def convert_condition_not(self, cond: ConditionNOT, state: ConversionState):
