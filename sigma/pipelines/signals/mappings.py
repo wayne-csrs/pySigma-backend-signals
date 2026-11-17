@@ -61,9 +61,11 @@ CATEGORY_FIELD_MAPPINGS = {
     },
     "windows_image_load": {
         "Image": "process.path",
-        "ImageLoaded": "module.path",
+        "ImageLoaded": "image.path",
         "ProcessName": "process.name",
         "CommandLine": "process.command_line",
+        "Signed": "image.signature_status",
+        "SignatureStatus": "image.signature_status",
         "sha256": "module.hash_sha256",
         "sha1": "module.hash_sha1",
         "md5": "module.hash_md5",
@@ -154,4 +156,20 @@ CATEGORY_FIELD_MAPPINGS = {
         "sha1": "file.hash_sha1",
         "md5": "file.hash_md5",
     },
+}
+
+# Sigma signature values -> Tanium Signals image/process.signature_status values.
+SIGNATURE_STATUS_VALUE_MAP = {
+    "false": "no_signature",
+    "unsigned": "no_signature",
+    "unavailable": "no_signature",
+    "invalid": "unverified",
+    "expired": "unverified",
+    "untrusted": "unverified",
+    "error": "unverified",
+    "unverified": "unverified",
+    "true": "verified",
+    "valid": "verified",
+    "trusted": "verified",
+    "verified": "verified",
 }
