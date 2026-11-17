@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Iterable, Optional, Union
 
+from sigma.correlations import SigmaCorrelationRule
 from sigma.pipelines.base import Pipeline
 from sigma.processing.conditions import (
     IncludeFieldCondition,
@@ -14,16 +15,26 @@ from sigma.processing.transformations import (
     RuleFailureTransformation,
     SetStateTransformation,
 )
+from sigma.processing.transformations.base import PreprocessingTransformation
 from sigma.processing.transformations.detection_item import DetectionItemTransformation
 from sigma.processing.transformations.values import ValueTransformation
-from sigma.rule import SigmaDetectionItem
-from sigma.types import SigmaBool, SigmaNull, SigmaString, SigmaType
+from sigma.rule import SigmaDetection, SigmaDetectionItem, SigmaRule
+from sigma.types import (
+    SigmaBool,
+    SigmaNull,
+    SigmaRegularExpression,
+    SigmaString,
+    SigmaType,
+)
 from sigma.pipelines.signals.mappings import (
     CATEGORY_FIELD_MAPPINGS,
     CATEGORY_TO_CONDITIONS_FACTORIES,
+    CREATE_REMOTE_THREAD_UNSUPPORTED_MESSAGE,
     GENERIC_FIELD_MAPPINGS,
     GRANDPARENT_MANUAL_REVIEW_MESSAGE,
+    REGEX_UNSUPPORTED_MESSAGE,
     SIGNATURE_STATUS_VALUE_MAP,
+    UNSUPPORTED_ONLY_STATE_KEY,
 )
 
 
@@ -103,9 +114,46 @@ def _network_category_or_destination_without_initiated(
     return bool(values[0] and values[1] and not values[2])
 
 
+def _detection_contains_regex(detection: SigmaDetection) -> bool:
+    for item in detection.detection_items:
+        if isinstance(item, SigmaDetection):
+            if _detection_contains_regex(item):
+                return True
+        elif isinstance(item, SigmaDetectionItem):
+            for value in item.value:
+                if isinstance(value, SigmaRegularExpression):
+                    return True
+    return False
+
+
+@dataclass
+class RegexUnsupportedTransformation(PreprocessingTransformation):
+    """Mark rules with |re conditions as unsupported-only conversions."""
+
+    def apply(self, rule: Union[SigmaRule, SigmaCorrelationRule]) -> None:
+        super().apply(rule)
+        if not isinstance(rule, SigmaRule) or self._pipeline is None:
+            return
+        if any(
+            _detection_contains_regex(detection)
+            for detection in rule.detection.detections.values()
+        ):
+            self._pipeline.state[UNSUPPORTED_ONLY_STATE_KEY] = REGEX_UNSUPPORTED_MESSAGE
+
+
 @Pipeline
 def signals_pipeline() -> ProcessingPipeline:
     items = [
+        ProcessingItem(
+            identifier="signals_create_remote_thread_unsupported",
+            transformation=SetStateTransformation(
+                key=UNSUPPORTED_ONLY_STATE_KEY,
+                val=CREATE_REMOTE_THREAD_UNSUPPORTED_MESSAGE,
+            ),
+            rule_conditions=[
+                LogsourceCondition(product="windows", category="create_remote_thread")
+            ],
+        ),
         ProcessingItem(
             identifier="signals_unsupported_logsource",
             transformation=RuleFailureTransformation(
@@ -115,11 +163,18 @@ def signals_pipeline() -> ProcessingPipeline:
                 )
             ),
             rule_conditions=[
-                condition_factory()
-                for condition_factory in CATEGORY_TO_CONDITIONS_FACTORIES.values()
+                *(
+                    condition_factory()
+                    for condition_factory in CATEGORY_TO_CONDITIONS_FACTORIES.values()
+                ),
+                LogsourceCondition(product="windows", category="create_remote_thread"),
             ],
             rule_condition_linking=any,
             rule_condition_negation=True,
+        ),
+        ProcessingItem(
+            identifier="signals_regex_unsupported",
+            transformation=RegexUnsupportedTransformation(),
         ),
         ProcessingItem(
             identifier="signals_base_field_mapping",

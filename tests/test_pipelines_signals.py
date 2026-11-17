@@ -16,16 +16,42 @@ def test_signals_pipeline_rejects_unsupported_category() -> None:
         status: test
         logsource:
             product: windows
-            category: create_remote_thread
+            category: driver_load
         detection:
             sel:
-                TargetImage: C:\\Windows\\System32\\mstsc.exe
+                ImageLoaded: C:\\Windows\\System32\\drivers\\evil.sys
             condition: sel
         """
     )
 
     with pytest.raises(SigmaTransformationError, match="Unsupported Signals logsource"):
         SignalsBackend().convert(rule)
+
+
+def test_signals_create_remote_thread_returns_manual_review_message() -> None:
+    """create_remote_thread cannot be expressed in Tanium Signals (TDE2148)."""
+    query = SignalsBackend().convert(
+        SigmaCollection.from_yaml(
+            """
+            title: Remote Thread Unsupported Test
+            status: test
+            logsource:
+                product: windows
+                category: create_remote_thread
+            detection:
+                mstsc_process:
+                    TargetImage|endswith: '\\mstsc.exe'
+                condition: mstsc_process
+            """
+        )
+    )[0]
+
+    assert query == (
+        "Unsupported telemetry: Tanium Signals cannot represent create_remote_thread. "
+        "Manual review is required."
+    )
+    assert "TargetImage" not in query
+    assert "mstsc" not in query
 
 
 def test_signals_pipeline_field_mapping_applied() -> None:

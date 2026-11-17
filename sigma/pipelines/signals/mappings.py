@@ -168,3 +168,16 @@ GRANDPARENT_MANUAL_REVIEW_MESSAGE = (
     "Tanium cannot identify the exact grandparent process. "
     "Manual analyst review is required."
 )
+
+CREATE_REMOTE_THREAD_UNSUPPORTED_MESSAGE = (
+    "Unsupported telemetry: Tanium Signals cannot represent create_remote_thread. "
+    "Manual review is required."
+)
+
+REGEX_UNSUPPORTED_MESSAGE = (
+    "Tanium Signals cannot represent regular expressions. "
+    "Manual translation and review are required."
+)
+
+# Pipeline state key: when set, conversion returns only this message (no Signals query).
+UNSUPPORTED_ONLY_STATE_KEY = "unsupported_only"

@@ -99,24 +99,27 @@ def test_signals_in_expression(signals_backend: SignalsBackend):
     ) == ["fieldA is 'valueA' OR fieldA is 'valueB' OR fieldA starts with 'valueC'"]
 
 def test_signals_regex_query_not_supported(signals_backend: SignalsBackend):
-    with pytest.raises(
-        NotImplementedError,
-        match="Regular expression template is not supported by the backend",
-    ):
-        signals_backend.convert(
-            SigmaCollection.from_yaml("""
-                title: Test
-                status: test
-                logsource:
-                    category: process_creation
-                    product: windows
-                detection:
-                    sel:
-                        fieldA|re: foo.*bar
-                        fieldB: foo
-                    condition: sel
-            """)
-        )
+    query = signals_backend.convert(
+        SigmaCollection.from_yaml("""
+            title: Test
+            status: test
+            logsource:
+                category: process_creation
+                product: windows
+            detection:
+                sel:
+                    fieldA|re: foo.*bar
+                    fieldB: foo
+                condition: sel
+        """)
+    )[0]
+
+    assert query == (
+        "Tanium Signals cannot represent regular expressions. "
+        "Manual translation and review are required."
+    )
+    assert "fieldA" not in query
+    assert "fieldB" not in query
 
 def test_signals_cidr_query(signals_backend: SignalsBackend):
     assert signals_backend.convert(
