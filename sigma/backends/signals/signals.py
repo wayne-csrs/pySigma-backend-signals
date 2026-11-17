@@ -1,13 +1,19 @@
 import json
+import re
+from typing import Any, Callable, ClassVar, Dict, List, Optional, Pattern, Tuple, Union
+
 from sigma.conversion.base import TextQueryBackend
 from sigma.conversion.state import ConversionState
 from sigma.conditions import ConditionItem, ConditionAND, ConditionOR, ConditionNOT
 from sigma.correlations import SigmaCorrelationRule
+from sigma.exceptions import SigmaError
 from sigma.pipelines.signals import signals_pipeline
+from sigma.pipelines.signals.mappings import (
+    REGEX_UNSUPPORTED_MESSAGE,
+    UNSUPPORTED_ONLY_STATE_KEY,
+)
 from sigma.rule import SigmaRule
 from sigma.types import SigmaCompareExpression
-import re
-from typing import Any, ClassVar, Dict, List, Optional, Pattern, Tuple, Union
 
 # Future backend imports you may enable later:
 # from sigma.conversion.state import ConversionState
@@ -73,8 +79,8 @@ class SignalsBackend(TextQueryBackend):
     not_contains_expression: ClassVar[str] = "{field} contains not {value}"
     wildcard_match_expression: ClassVar[str] = "{field} matches {value}"
 
-    # Tanium Signals does not support regex; leave templates unset so pySigma raises
-    # NotImplementedError when a rule uses field|re.
+    # Regex is detected in the pipeline and short-circuited to a manual-review message.
+    # Keep templates unset; converters below are a safety net if conversion is reached.
     re_expression: ClassVar[Optional[str]] = None
     not_re_expression: ClassVar[Optional[str]] = None
     unbound_value_re_expression: ClassVar[Optional[str]] = None
@@ -198,6 +204,103 @@ class SignalsBackend(TextQueryBackend):
             return converted_ruleid[len(self.str_quote) : -len(self.str_quote)]
         return converted_ruleid
     ### Correlation end ###
+
+    def convert_condition_field_eq_val_re(self, cond: Any, state: ConversionState) -> str:
+        return REGEX_UNSUPPORTED_MESSAGE
+
+    def convert_condition_field_eq_val_re_case_insensitive(
+        self, cond: Any, state: ConversionState
+    ) -> str:
+        return REGEX_UNSUPPORTED_MESSAGE
+
+    def convert_condition_val_re(self, cond: Any, state: ConversionState) -> str:
+        return REGEX_UNSUPPORTED_MESSAGE
+
+    def convert_rule(
+        self,
+        rule: SigmaRule,
+        output_format: Optional[str] = None,
+        callback: Optional[
+            Callable[
+                [Union[SigmaRule, SigmaCorrelationRule], Optional[str], int, Any, Any],
+                Any,
+            ]
+        ] = None,
+    ) -> List[Any]:
+        """Convert a rule, returning only a manual-review message when unsupported."""
+        try:
+            if (
+                not hasattr(self, "last_processing_pipeline")
+                or self.last_processing_pipeline is None
+            ):
+                self.init_processing_pipeline(output_format)
+
+            self.last_processing_pipeline.apply(rule)
+
+            unsupported = self.last_processing_pipeline.state.get(
+                UNSUPPORTED_ONLY_STATE_KEY
+            )
+            if unsupported:
+                message = str(unsupported)
+                state = ConversionState(
+                    processing_state=dict(self.last_processing_pipeline.state)
+                )
+                fmt = output_format or self.default_format
+                finalized = (
+                    self.finalize_query_json(rule, message, 0, state)
+                    if fmt == "json"
+                    else message
+                )
+                rule.set_conversion_result([finalized])
+                rule.set_conversion_states([state])
+                return [finalized] if rule._output else []
+
+            states: List[ConversionState] = [
+                ConversionState(
+                    processing_state=dict(self.last_processing_pipeline.state)
+                )
+                for _ in rule.detection.parsed_condition
+            ]
+            queries: List[Any] = []
+            for index, cond in enumerate(rule.detection.parsed_condition):
+                state = states[index]
+                result = self.convert_condition(cond.parsed, state)
+                if result is not None:
+                    result = self.finish_query(rule, result, state)
+                if callback is not None:
+                    result = callback(rule, output_format, index, cond, result)
+                if result is not None:
+                    queries.append(result)
+
+            finalized_queries = (
+                [
+                    self.finalize_query(
+                        rule,
+                        query,
+                        index,
+                        states[index],
+                        output_format or self.default_format,
+                    )
+                    for index, query in enumerate(queries)
+                ]
+                if self.finalize_correlation_subqueries or not rule._backreferences
+                else queries
+            )
+            rule.set_conversion_result(finalized_queries)
+            rule.set_conversion_states(states)
+            return finalized_queries if rule._output else []
+        except SigmaError as e:
+            if self.collect_errors:
+                self.errors.append((rule, e))
+                return []
+            raise e
+        except Exception as e:
+            msg = f" (while converting rule {str(rule.source)})"
+            if len(e.args) > 1:
+                e.args = (e.args[0] + msg,) + e.args[1:]
+            else:
+                e.args = (e.args[0] + msg,)
+            raise
 
     def convert_condition_not(self, cond: ConditionNOT, state: ConversionState):
         """Distribute grouped NOT into leaf negations Tanium can express.
