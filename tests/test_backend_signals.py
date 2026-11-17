@@ -212,7 +212,7 @@ def test_signals_not_or_expression(signals_backend: SignalsBackend):
                     fieldB: valueB
                 condition: not (filter_a or filter_b)
         """)
-    ) == ["NOT (fieldA is 'valueA' OR fieldB is 'valueB')"]
+    ) == ["fieldA is not 'valueA' AND fieldB is not 'valueB'"]
 
 def test_signals_not_or_contains_all_expression(signals_backend: SignalsBackend):
     assert signals_backend.convert(
@@ -232,7 +232,7 @@ def test_signals_not_or_contains_all_expression(signals_backend: SignalsBackend)
                 condition: not (filter_a or filter_b)
         """)
     ) == [
-            "NOT ((fieldA contains 'valueA' AND fieldA contains 'valueB') OR fieldB is 'valueB')"
+        "(fieldA contains not 'valueA' OR fieldA contains not 'valueB') AND fieldB is not 'valueB'"
     ]
 
 # NOTE: Expand coverage for custom backend behavior (e.g., deferred expressions) as features are finalized.

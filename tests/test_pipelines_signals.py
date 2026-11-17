@@ -95,6 +95,42 @@ def test_signals_pipeline_macos_file_create_field_mapping_applied() -> None:
     assert "file.path" in query
 
 
+def test_signals_pipeline_image_load_path_and_signature_status() -> None:
+    """ImageLoaded -> image.path; Signed/SignatureStatus -> image.signature_status.
+
+    Pattern from global-rule-library [TDE2371]-lsass_loading_suspicious_dll.
+    """
+    query = SignalsBackend().convert(
+        SigmaCollection.from_yaml(
+            """
+            title: Image Load Signature Mapping Test
+            status: test
+            logsource:
+                product: windows
+                category: image_load
+            detection:
+                lsass_process:
+                    Image|endswith: '\\lsass.exe'
+                dll_file:
+                    ImageLoaded|endswith: '.dll'
+                invalid_signature:
+                    SignatureStatus: 'invalid'
+                unsigned_module:
+                    Signed: 'false'
+                condition: lsass_process and dll_file
+                    and (invalid_signature or unsigned_module)
+            """
+        )
+    )[0]
+
+    assert "image.path ends with '.dll'" in query
+    assert "image.signature_status is 'unverified'" in query
+    assert "image.signature_status is 'no_signature'" in query
+    assert "module.path" not in query
+    assert "SignatureStatus" not in query
+    assert "Signed" not in query
+
+
 def test_signals_pipeline_network_port_signature_and_operation() -> None:
     """DestinationPort, Signature null, and default connect (TDE2268)."""
     query = SignalsBackend().convert(

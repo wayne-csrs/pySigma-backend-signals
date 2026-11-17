@@ -162,6 +162,14 @@ def signals_pipeline() -> ProcessingPipeline:
             ],
         ),
         ProcessingItem(
+            identifier="signals_image_load_signature_status_values",
+            transformation=SignatureStatusValueTransformation(),
+            rule_conditions=[CATEGORY_TO_CONDITIONS_FACTORIES["windows_image_load"]()],
+            field_name_conditions=[
+                IncludeFieldCondition(fields=["Signed", "SignatureStatus"])
+            ],
+        ),
+        ProcessingItem(
             identifier="signals_grandparent_manual_review",
             transformation=SetStateTransformation(
                 key="manual_review",

@@ -200,14 +200,46 @@ class SignalsBackend(TextQueryBackend):
     ### Correlation end ###
 
     def convert_condition_not(self, cond: ConditionNOT, state: ConversionState):
+        """Distribute grouped NOT into leaf negations Tanium can express.
+
+        Tanium Signals does not treat ``NOT (A OR B OR C)`` as expected, so rewrite
+        with De Morgan until only leaf-level ``contains not`` / ``is not`` remain:
+
+        - ``NOT (A OR B)``  -> ``NOT A AND NOT B``
+        - ``NOT (A AND B)`` -> ``NOT A OR NOT B``
+        """
         arg = cond.args[0]
-        if arg is not None and arg.__class__ in (ConditionAND, ConditionOR):
-            convert_not_as_not_eq = self.convert_not_as_not_eq
-            self.convert_not_as_not_eq = False
-            try:
-                return super().convert_condition_not(cond, state)
-            finally:
-                self.convert_not_as_not_eq = convert_not_as_not_eq
+        if arg is None:
+            return None
+
+        if isinstance(arg, (ConditionOR, ConditionAND)):
+            opposite = ConditionAND if isinstance(arg, ConditionOR) else ConditionOR
+            distributed_args: List[ConditionNOT] = []
+            for child in arg.args:
+                if child is None:
+                    continue
+                not_child = ConditionNOT([child], source=cond.source)
+                child.parent = not_child
+                not_child.parent = cond
+                distributed_args.append(not_child)
+
+            if not distributed_args:
+                return None
+            if len(distributed_args) == 1:
+                return self.convert_condition_not(distributed_args[0], state)
+
+            distributed = opposite(distributed_args, source=cond.source)
+            for not_child in distributed_args:
+                not_child.parent = distributed
+            distributed.parent = cond.parent
+            # convert_condition_not is entered directly, so re-check whether the
+            # rewritten AND/OR needs parentheses relative to its parent.
+            if cond.parent is not None and not self.compare_precedence(
+                cond.parent, distributed
+            ):
+                return self.convert_condition_group(distributed, state)
+            return self.convert_condition(distributed, state)
+
         return super().convert_condition_not(cond, state)
 
     @staticmethod
