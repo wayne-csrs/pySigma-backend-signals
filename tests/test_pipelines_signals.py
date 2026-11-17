@@ -93,3 +93,131 @@ def test_signals_pipeline_macos_file_create_field_mapping_applied() -> None:
     )[0]
 
     assert "file.path" in query
+
+
+def test_signals_pipeline_network_port_signature_and_operation() -> None:
+    """DestinationPort, Signature null, and default connect (TDE2268)."""
+    query = SignalsBackend().convert(
+        SigmaCollection.from_yaml(
+            """
+            title: Network Mapping Test
+            status: test
+            logsource:
+                product: windows
+                category: network_connection
+            detection:
+                user_writable_path:
+                    Image|contains: '\\AppData\\'
+                sign_vendor_null:
+                    Signature: null
+                php_in_cmd:
+                    CommandLine|contains: '.php'
+                web_ports:
+                    DestinationPort:
+                        - 80
+                        - 443
+                condition: user_writable_path and sign_vendor_null and php_in_cmd and web_ports
+            """
+        )
+    )[0]
+
+    assert "network.port is 80" in query
+    assert "network.port is 443" in query
+    assert "network.destination_port" not in query
+    assert "process.signature_status is 'no_signature'" in query
+    assert "Signature is null" not in query
+    assert "network.operation is 'connect'" in query
+
+
+def test_signals_pipeline_network_operation_accept() -> None:
+    query = SignalsBackend().convert(
+        SigmaCollection.from_yaml(
+            """
+            title: Network Accept Test
+            status: test
+            logsource:
+                product: windows
+                category: network_connection
+            detection:
+                sel:
+                    DestinationPort: 445
+                    Initiated: 'false'
+                condition: sel
+            """
+        )
+    )[0]
+
+    assert "network.port is 445" in query
+    assert "network.operation is 'accept'" in query
+    assert "network.operation is 'connect'" not in query
+
+
+def test_signals_pipeline_linux_file_event_target_filename() -> None:
+    """Linux file_event maps TargetFilename without file.operation (TDE2173)."""
+    query = SignalsBackend().convert(
+        SigmaCollection.from_yaml(
+            """
+            title: PAM Tampering Mapping Test
+            status: test
+            logsource:
+                product: linux
+                category: file_event
+            detection:
+                pam_unix_so:
+                    TargetFilename:
+                        - /lib/security/pam_unix.so
+                        - /usr/lib/security/pam_unix.so
+                condition: pam_unix_so
+            """
+        )
+    )[0]
+
+    assert "file.path is '/lib/security/pam_unix.so'" in query
+    assert "file.operation" not in query
+
+
+def test_signals_pipeline_windows_file_delete_target_filename() -> None:
+    query = SignalsBackend().convert(
+        SigmaCollection.from_yaml(
+            """
+            title: File Delete Mapping Test
+            status: test
+            logsource:
+                product: windows
+                category: file_delete
+            detection:
+                sel:
+                    TargetFilename|endswith: '\\evil.dll'
+                condition: sel
+            """
+        )
+    )[0]
+
+    assert "file.path ends with" in query
+    assert "evil.dll" in query
+    assert "file.operation" not in query
+
+
+def test_signals_pipeline_grandparent_ancestry_manual_review() -> None:
+    """GrandparentImage -> process.ancestry_path with review note (TDE2306)."""
+    query = SignalsBackend().convert(
+        SigmaCollection.from_yaml(
+            """
+            title: Ancestry Mapping Test
+            status: test
+            logsource:
+                product: windows
+                category: process_creation
+            detection:
+                sel:
+                    Image|endswith: '\\reg.exe'
+                    GrandparentImage|endswith: '\\node.exe'
+                condition: sel
+            """
+        )
+    )[0]
+
+    assert "process.ancestry_path ends with" in query
+    assert "node.exe" in query
+    assert "GrandparentImage" not in query
+    assert "MANUAL REVIEW: Tanium cannot identify the exact grandparent process." in query
