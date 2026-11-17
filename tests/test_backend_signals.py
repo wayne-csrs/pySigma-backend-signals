@@ -20,7 +20,7 @@ def test_signals_and_expression(signals_backend: SignalsBackend):
                     fieldB: valueB
                 condition: sel
         """)
-    ) == ["fieldA='valueA' AND fieldB='valueB'"]
+    ) == ["fieldA is 'valueA' AND fieldB is 'valueB'"]
 
 def test_signals_or_expression(signals_backend: SignalsBackend):
     assert signals_backend.convert(
@@ -37,7 +37,7 @@ def test_signals_or_expression(signals_backend: SignalsBackend):
                     fieldB: valueB
                 condition: 1 of sel*
         """)
-    ) == ["fieldA='valueA' OR fieldB='valueB'"]
+    ) == ["fieldA is 'valueA' OR fieldB is 'valueB'"]
 
 def test_signals_and_or_expression(signals_backend: SignalsBackend):
     assert signals_backend.convert(
@@ -57,7 +57,7 @@ def test_signals_and_or_expression(signals_backend: SignalsBackend):
                         - valueB2
                 condition: sel
         """)
-    ) == ["(fieldA='valueA1' OR fieldA='valueA2') AND (fieldB='valueB1' OR fieldB='valueB2')"]
+    ) == ["(fieldA is 'valueA1' OR fieldA is 'valueA2') AND (fieldB is 'valueB1' OR fieldB is 'valueB2')"]
 
 def test_signals_or_and_expression(signals_backend: SignalsBackend):
     assert signals_backend.convert(
@@ -77,7 +77,7 @@ def test_signals_or_and_expression(signals_backend: SignalsBackend):
                 condition: 1 of sel*
         """)
     ) == [
-        "(fieldA='valueA1' AND fieldB='valueB1') OR (fieldA='valueA2' AND fieldB='valueB2')"
+        "(fieldA is 'valueA1' AND fieldB is 'valueB1') OR (fieldA is 'valueA2' AND fieldB is 'valueB2')"
     ]
 
 def test_signals_in_expression(signals_backend: SignalsBackend):
@@ -96,7 +96,7 @@ def test_signals_in_expression(signals_backend: SignalsBackend):
                         - valueC*
                 condition: sel
         """)
-    ) == ["fieldA='valueA' OR fieldA='valueB' OR fieldA starts with 'valueC'"]
+    ) == ["fieldA is 'valueA' OR fieldA is 'valueB' OR fieldA starts with 'valueC'"]
 
 def test_signals_regex_query_not_supported(signals_backend: SignalsBackend):
     with pytest.raises(
@@ -146,7 +146,7 @@ def test_signals_field_name_with_whitespace(signals_backend: SignalsBackend):
                     field name: value
                 condition: sel
         """)
-    ) == ['"field\\ name"=\'value\'']
+    ) == ['"field\\ name" is \'value\'']
 
 def test_signals_not_contains_expression(signals_backend: SignalsBackend):
     assert signals_backend.convert(
@@ -212,7 +212,7 @@ def test_signals_not_or_expression(signals_backend: SignalsBackend):
                     fieldB: valueB
                 condition: not (filter_a or filter_b)
         """)
-    ) == ["NOT (fieldA='valueA' OR fieldB='valueB')"]
+    ) == ["NOT (fieldA is 'valueA' OR fieldB is 'valueB')"]
 
 def test_signals_not_or_contains_all_expression(signals_backend: SignalsBackend):
     assert signals_backend.convert(
@@ -232,7 +232,7 @@ def test_signals_not_or_contains_all_expression(signals_backend: SignalsBackend)
                 condition: not (filter_a or filter_b)
         """)
     ) == [
-            "NOT ((fieldA contains 'valueA' AND fieldA contains 'valueB') OR fieldB='valueB')"
+            "NOT ((fieldA contains 'valueA' AND fieldA contains 'valueB') OR fieldB is 'valueB')"
     ]
 
 # NOTE: Expand coverage for custom backend behavior (e.g., deferred expressions) as features are finalized.
