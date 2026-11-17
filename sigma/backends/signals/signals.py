@@ -36,7 +36,9 @@ class SignalsBackend(TextQueryBackend):
     or_token: ClassVar[str] = "OR"
     and_token: ClassVar[str] = "AND"
     not_token: ClassVar[str] = "NOT"
-    eq_token: ClassVar[str] = "="
+    # Tanium Signals uses the native `is` operator for equality (not `=`).
+    # pySigma concatenates as `{field}{eq_token}{value}` with no extra spaces.
+    eq_token: ClassVar[str] = " is "
     convert_not_as_not_eq: ClassVar[bool] = True
 
     def compare_precedence(self, outer: Any, inner: Any) -> bool:
@@ -79,7 +81,7 @@ class SignalsBackend(TextQueryBackend):
 
     # Case sensitive string matching expression. String is quoted/escaped like a normal string.
     # Placeholders {field} and {value} are replaced with field name and quoted/escaped string.
-    case_sensitive_match_expression: ClassVar[str] = "{field} = {value}"
+    case_sensitive_match_expression: ClassVar[str] = "{field} is {value}"
     not_eq_expression: ClassVar[str] = "{field} is not {value}"
     case_sensitive_startswith_expression: ClassVar[str] = "{field} starts with {value}"
     case_sensitive_not_startswith_expression: ClassVar[str] = "{field} starts with not {value}"

@@ -38,7 +38,7 @@ correlation:
             """
     )
     assert signals_backend.convert(correlation_rule) == [
-        """fieldA='value1' AND fieldB='value2'
+        """fieldA is 'value1' AND fieldB is 'value2'
 | aggregate window=15min count() as event_count by fieldC, fieldD
 | where event_count >= 10"""
     ]
@@ -73,7 +73,7 @@ correlation:
             """
     )
     assert signals_backend.convert(correlation_rule) == [
-        """fieldA='value1' AND fieldB='value2'
+        """fieldA is 'value1' AND fieldB is 'value2'
 | aggregate window=15min value_count(fieldD) as value_count by fieldC
 | where value_count < 10"""
     ]
@@ -122,8 +122,8 @@ correlation:
 """
     )
     assert signals_backend.convert(correlation_rule) == [
-        """subsearch (( fieldA='value1' AND fieldB='value2' | set event_type="base_rule_1" | set field=fieldC ))
-subsearch (( fieldA='value3' AND fieldB='value4' | set event_type="base_rule_2" | set field=fieldD ))
+        """subsearch (( fieldA is 'value1' AND fieldB is 'value2' | set event_type="base_rule_1" | set field=fieldC ))
+subsearch (( fieldA is 'value3' AND fieldB is 'value4' | set event_type="base_rule_2" | set field=fieldD ))
 
 | temporal window=15min eventtypes=base_rule_1,base_rule_2 by fieldC
 
@@ -174,8 +174,8 @@ correlation:
 """
     )
     assert signals_backend.convert(correlation_rule) == [
-        """subsearch (( fieldA='value1' AND fieldB='value2' | set event_type="base_rule_1" | set field=fieldC ))
-subsearch (( fieldA='value3' AND fieldB='value4' | set event_type="base_rule_2" | set field=fieldD ))
+        """subsearch (( fieldA is 'value1' AND fieldB is 'value2' | set event_type="base_rule_1" | set field=fieldC ))
+subsearch (( fieldA is 'value3' AND fieldB is 'value4' | set event_type="base_rule_2" | set field=fieldD ))
 | temporal ordered=true window=15min eventtypes=base_rule_1,base_rule_2 by fieldC
 | where eventtype_count >= 2 and eventtype_order=base_rule_1,base_rule_2"""
     ]
