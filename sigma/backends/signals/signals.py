@@ -268,6 +268,32 @@ class SignalsBackend(TextQueryBackend):
                 tactics.append(attack_tag)
         return tactics
 
+    @staticmethod
+    def _manual_review_notes(state: ConversionState) -> List[str]:
+        notes = state.processing_state.get("manual_review") if state.processing_state else None
+        if not notes:
+            return []
+        if isinstance(notes, str):
+            return [notes]
+        return [str(note) for note in notes]
+
+    def finalize_query_default(
+        self,
+        rule: Union[SigmaRule, SigmaCorrelationRule],
+        query: Any,
+        index: int,
+        state: ConversionState,
+    ) -> Any:
+        finalized = super().finalize_query_default(rule, query, index, state)
+        if not isinstance(finalized, str):
+            return finalized
+
+        notes = self._manual_review_notes(state)
+        if not notes:
+            return finalized
+        review_block = "\n".join(f"MANUAL REVIEW: {note}" for note in notes)
+        return f"{finalized}\n\n{review_block}"
+
     def finalize_query_json(
         self,
         rule: Union[SigmaRule, SigmaCorrelationRule],
@@ -275,6 +301,8 @@ class SignalsBackend(TextQueryBackend):
         index: int,
         state: ConversionState,
     ) -> Dict[str, Any]:
+        manual_review = self._manual_review_notes(state)
+
         if isinstance(rule, SigmaCorrelationRule):
             return {
                 "name": rule.name or "",
@@ -288,6 +316,7 @@ class SignalsBackend(TextQueryBackend):
                 "author": "",
                 "reference": [],
                 "falsepositives": [],
+                "manualReview": manual_review,
                 "mitreAttack": {
                     "technique_ids": [],
                     "tactics": [],
@@ -314,6 +343,7 @@ class SignalsBackend(TextQueryBackend):
             "falsepositives": [
                 str(falsepositive) for falsepositive in (rule.falsepositives or [])
             ],
+            "manualReview": manual_review,
             "mitreAttack": {
                 "technique_ids": self._extract_mitre_technique_ids(rule),
                 "tactics": self._extract_mitre_tactics(rule),
