@@ -25,26 +25,33 @@ This package provides:
 - **Pipeline**: `sigma.pipelines.signals` with `signals_pipeline`
 - **Output formats**:
   - `default` (plain Signals query output)
-  - `json` (query plus Sigma metadata in JSON, including `mitreAttack.technique_ids`)
+  - `json` (query plus Sigma metadata in JSON, including `mitreAttack.technique_ids`, `mitreAttack.tactics`, and `manualReview`)
 
 The backend is designed for Sigma rule conversion with field normalisation that maps common Windows/Sysmon-style fields to Signals fields.
 
 ## Key Features
 
-- Supports common Sigma condition patterns (`AND`, `OR`, list values, regex, CIDR expansion)
+- Supports common Sigma condition patterns (`AND`, `OR`, list values, CIDR expansion)
+- Returns a clear manual-review message for unsupported `|re` conditions (Tanium Signals has no regex operator)
 - Includes correlation query templates (event count, value count, temporal, temporal ordered)
 - Provides category-specific field mappings through a dedicated processing pipeline
 - Works in Python workflows and can be used with `sigma-cli` where backend discovery is configured
 
 ## Quick Start
 
-Install dependencies (example with `pip`):
+Install from PyPI:
 
 ```bash
-pip install pysigma
+pip install pySigma-backend-signals
 ```
 
-Then install this backend from source:
+To include pre-releases:
+
+```bash
+pip install --pre pySigma-backend-signals
+```
+
+Or install from source:
 
 ```bash
 git clone https://github.com/wayne-csrs/pySigma-backend-signals.git
@@ -107,9 +114,13 @@ Examples of normalised fields include:
 
 - `Image` -> `process.path`
 - `CommandLine` -> `process.command_line`
+- `ImageLoaded` -> `image.path`
+- `Signed` / `SignatureStatus` -> `image.signature_status` or `process.signature_status` (with Tanium values)
 - `TargetFilename` -> `file.path`
-- `SourceIp` -> `network.source.ip`
-- `RegistryValueData` -> `registry.value.data`
+- `DestinationPort` -> `network.port`
+- `SourceIp` -> `network.source_ip`
+- `GrandparentImage` -> `process.ancestry_path`
+- `RegistryValueData` -> `registry.value_data`
 
 ## Maintainer
 
